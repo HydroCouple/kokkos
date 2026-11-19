@@ -49,6 +49,14 @@ class UniqueToken<SYCL, UniqueTokenScope::Global> {
  private:
   /// \brief acquire value such that 0 <= value < size()
   size_type impl_acquire() const {
+#if defined(KOKKOS_IMPL_SYCL_ADAPTIVECPP_METAL)
+    const auto thread = sycl::detail::get_local_id<3>();
+    const auto block = sycl::detail::get_group_id<3>();
+    const auto local_size = sycl::detail::get_local_size<3>();
+    std::size_t threadIdx[] = {thread[2], thread[1], thread[0]};
+    std::size_t blockIdx[] = {block[2], block[1], block[0]};
+    std::size_t blockDim[] = {local_size[2], local_size[1], local_size[0]};
+#else
 #if defined(KOKKOS_COMPILER_INTEL_LLVM) && \
     KOKKOS_COMPILER_INTEL_LLVM >= 20250000
     auto item = sycl::ext::oneapi::this_work_item::get_nd_item<3>();
@@ -61,6 +69,7 @@ class UniqueToken<SYCL, UniqueTokenScope::Global> {
                                 item.get_group(0)};
     std::size_t blockDim[3] = {item.get_local_range(2), item.get_local_range(1),
                                item.get_local_range(0)};
+#endif
 
     int idx = blockIdx[0] * (blockDim[0] * blockDim[1]) +
               threadIdx[1] * blockDim[0] + threadIdx[0];

@@ -101,6 +101,9 @@ class Kokkos::Impl::ParallelFor<FunctorType, Kokkos::TeamPolicy<Properties...>,
           space.impl_internal_space_instance()->m_scratch_locks,
           space.impl_internal_space_instance()->m_num_scratch_locks);
 
+#if defined(KOKKOS_IMPL_SYCL_ADAPTIVECPP_METAL)
+      const size_t max_sg_size = sycl_minimum_sub_group_size(q.get_device());
+#else
       static sycl::kernel kernel = [&] {
         sycl::kernel_id functor_kernel_id =
             sycl::get_kernel_id<decltype(lambda)>();
@@ -113,6 +116,7 @@ class Kokkos::Impl::ParallelFor<FunctorType, Kokkos::TeamPolicy<Properties...>,
           kernel
               .get_info<sycl::info::kernel_device_specific::max_sub_group_size>(
                   q.get_device());
+#endif
       auto final_vector_size = std::min<int>(m_vector_size, max_sg_size);
       // FIXME_SYCL For some reason, explicitly enforcing the kernel bundle to
       // be used gives a runtime error.

@@ -80,6 +80,9 @@ std::enable_if_t<sizeof(T) == 8, T> device_atomic_exchange(T* const dest,
 template <class T, class MemoryOrder, class MemoryScope>
 std::enable_if_t<!device_atomic_always_lock_free<T>, T> device_atomic_compare_exchange(
     T* const dest, T compare, T value, MemoryOrder, MemoryScope scope) {
+#if defined(DESUL_IMPL_ADAPTIVECPP_MACOS_METAL)
+  unsupported_sycl_lock_based_atomic();
+#else
   // This is a way to avoid deadlock in a subgroup
   T return_val;
   int done = 0;
@@ -110,11 +113,15 @@ std::enable_if_t<!device_atomic_always_lock_free<T>, T> device_atomic_compare_ex
     done_active = group_ballot(sg, done);
   }
   return return_val;
+#endif
 }
 
 template <class T, class MemoryOrder, class MemoryScope>
 std::enable_if_t<!device_atomic_always_lock_free<T>, T> device_atomic_exchange(
     T* const dest, T value, MemoryOrder, MemoryScope scope) {
+#if defined(DESUL_IMPL_ADAPTIVECPP_MACOS_METAL)
+  unsupported_sycl_lock_based_atomic();
+#else
   // This is a way to avoid deadlock in a subgroup
   T return_val;
   int done = 0;
@@ -143,6 +150,7 @@ std::enable_if_t<!device_atomic_always_lock_free<T>, T> device_atomic_exchange(
     done_active = group_ballot(sg, done);
   }
   return return_val;
+#endif
 }
 
 }  // namespace Impl

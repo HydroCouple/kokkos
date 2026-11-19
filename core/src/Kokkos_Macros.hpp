@@ -545,6 +545,19 @@
   }
 #endif
 
+#if defined(KOKKOS_IMPL_SYCL_ADAPTIVECPP_METAL)
+#include <hipSYCL/sycl/libkernel/backend.hpp>
+#include <type_traits>
+#define KOKKOS_IF_ON_HOST(CODE)                                                \
+  if (std::is_constant_evaluated() || __acpp_sscp_is_host) {                   \
+    KOKKOS_IMPL_STRIP_PARENS(CODE)                                             \
+  }
+#define KOKKOS_IF_ON_DEVICE(CODE)                                              \
+  if (!std::is_constant_evaluated() && !__acpp_sscp_is_host) {                 \
+    KOKKOS_IMPL_STRIP_PARENS(CODE)                                             \
+  }
+#endif
+
 #if !defined(KOKKOS_IF_ON_HOST) && !defined(KOKKOS_IF_ON_DEVICE)
 #if (defined(KOKKOS_ENABLE_CUDA) && defined(__CUDA_ARCH__)) ||         \
     (defined(KOKKOS_ENABLE_HIP) && defined(__HIP_DEVICE_COMPILE__)) || \

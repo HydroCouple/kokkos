@@ -49,7 +49,15 @@ KOKKOS_SYCL_HALF_BINARY_FUNCTION(remainder)
 KOKKOS_SYCL_HALF_BINARY_FUNCTION(fmax)
 KOKKOS_SYCL_HALF_BINARY_FUNCTION(fmin)
 KOKKOS_SYCL_HALF_BINARY_FUNCTION(fdim)
+#if defined(KOKKOS_IMPL_SYCL_ADAPTIVECPP_METAL)
+inline Experimental::half_t impl_remquo(Experimental::half_t x,
+                                        Experimental::half_t y, int *z) {
+  return Experimental::half_t(
+      Kokkos::remquo(static_cast<float>(x), static_cast<float>(y), z));
+}
+#else
 KOKKOS_SYCL_HALF_TERNARY_INT_PTR_FUNCTION(remquo)
+#endif
 // Exponential functions
 KOKKOS_SYCL_HALF_UNARY_FUNCTION(exp)
 KOKKOS_SYCL_HALF_UNARY_FUNCTION(exp2)

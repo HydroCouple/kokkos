@@ -117,6 +117,19 @@ class SYCLTeamMember {
       typename WrappedReducerType::value_type& value) const noexcept {
     using value_type = typename WrappedReducerType::value_type;
 
+#if defined(KOKKOS_IMPL_SYCL_ADAPTIVECPP_METAL)
+    // SYCL group broadcasts supply one contribution per team rank.
+    value_type combined = value;
+    team_broadcast(combined, 0);
+    team_barrier();
+    for (int rank = 1; rank < team_size(); ++rank) {
+      value_type next = value;
+      team_broadcast(next, rank);
+      wrapped_reducer.join(&combined, &next);
+      team_barrier();
+    }
+    value = combined;
+#else
     auto sg                       = m_item.get_sub_group();
     const auto sub_group_range    = sg.get_local_range()[0];
     const auto vector_range       = m_item.get_local_range(1);
@@ -187,6 +200,7 @@ class SYCLTeamMember {
 
     // Make sure that every thread is done using the reduction array.
     sycl::group_barrier(m_item.get_group());
+#endif
   }
 
   //--------------------------------------------------------------------------

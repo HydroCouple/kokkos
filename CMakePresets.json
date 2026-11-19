@@ -1,0 +1,23 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "macos-arm64-metal",
+      "displayName": "Apple silicon Metal (AdaptiveCpp)",
+      "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin"},
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/macos-arm64-metal",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_OSX_ARCHITECTURES": "arm64",
+        "CMAKE_CXX_COMPILER": "acpp",
+        "CMAKE_CXX_FLAGS": "--acpp-targets=generic",
+        "Kokkos_ENABLE_SYCL": "ON",
+        "Kokkos_ENABLE_ONEDPL": "OFF"
+      }
+    }
+  ],
+  "buildPresets": [
+    {"name": "macos-arm64-metal", "configurePreset": "macos-arm64-metal"}
+  ]
+}

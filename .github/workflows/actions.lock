@@ -28,6 +28,9 @@ workflows:
         - 'actions/checkout@v7.0.1'
     '.github/workflows/labeler.yml':
         - 'actions/labeler@v7.0.0'
+    '.github/workflows/macos-metal.yml':
+        - 'actions/checkout@v7.0.1'
+        - 'actions/upload-artifact@v7.0.2'
     '.github/workflows/mdspan-version-check.yml':
         - 'actions/checkout@v7.0.1'
     '.github/workflows/nightly-cea.yml':

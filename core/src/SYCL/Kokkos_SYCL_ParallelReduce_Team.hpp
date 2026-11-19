@@ -309,6 +309,9 @@ class Kokkos::Impl::ParallelReduce<CombinedFunctorReducerType,
         const size_t scratch_size[2] = {m_scratch_size[0], m_scratch_size[1]};
         sycl::local_accessor<unsigned int> num_teams_done(1, cgh);
 
+#if defined(KOKKOS_IMPL_SYCL_ADAPTIVECPP_METAL)
+        const size_t max_sg_size = sycl_minimum_sub_group_size(q.get_device());
+#else
         auto dummy_reduction_lambda = create_team_reduction_lambda(
             /* local_mem */ {1, cgh},
             /* results_ptr */ nullptr,
@@ -328,6 +331,7 @@ class Kokkos::Impl::ParallelReduce<CombinedFunctorReducerType,
         auto max_sg_size = kernel.get_info<
             sycl::info::kernel_device_specific::max_sub_group_size>(
             q.get_device());
+#endif
         auto final_vector_size = std::min<int>(m_vector_size, max_sg_size);
         // FIXME_SYCL For some reason, explicitly enforcing the kernel bundle to
         // be used gives a runtime error.

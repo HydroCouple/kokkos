@@ -1,0 +1,71 @@
+name: macOS arm64 Metal
+on:
+  push:
+    branches: [develop, 'feature/macos-metal']
+  pull_request:
+    branches: [develop]
+  workflow_dispatch:
+    inputs:
+      hardware:
+        description: Run the Metal smoke test on a registered physical Mac
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Metal-enabled AdaptiveCpp
+        run: bash .github/scripts/install-macos-acpp.sh "$RUNNER_TEMP/toolchain"
+      - name: Build and install the SYCL package
+        run: |
+          export SDKROOT="$(xcrun --show-sdk-path)"
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_COMPILER="$RUNNER_TEMP/toolchain/install/bin/acpp" \
+            -DCMAKE_CXX_FLAGS=--acpp-targets=generic -DKokkos_ENABLE_SYCL=ON \
+            -DKokkos_ENABLE_ONEDPL=OFF -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/package"
+          cmake --build build --parallel 3
+          cmake --install build
+      - name: Test the installed CMake target on the SYCL CPU control
+        run: |
+          export SDKROOT="$(xcrun --show-sdk-path)"
+          cmake -S example/macos-metal -B smoke -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_COMPILER="$RUNNER_TEMP/toolchain/install/bin/acpp" \
+            -DCMAKE_CXX_FLAGS=--acpp-targets=generic -DCMAKE_PREFIX_PATH="$RUNNER_TEMP/package"
+          cmake --build smoke
+          ACPP_VISIBILITY_MASK=omp ./smoke/kokkos-metal-smoke cpu-control
+          tar -C "$RUNNER_TEMP/package" -czf "$RUNNER_TEMP/kokkos-macos-arm64.tar.gz" .
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: kokkos-macos-arm64
+          path: ${{ runner.temp }}/kokkos-macos-arm64.tar.gz
+          if-no-files-found: error
+
+  metal-device:
+    if: github.event_name == 'workflow_dispatch' && inputs.hardware
+    runs-on: [self-hosted, macOS, ARM64, metal]
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build and require execution on Metal
+        run: |
+          set -eu
+          export SDKROOT="${ACPP_APP_SDK:-$(xcrun --show-sdk-path)}"
+          work=$(mktemp -d "$RUNNER_TEMP/kokkos-metal.XXXXXXXX")
+          cmake -S . -B "$work/build" -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_COMPILER="$(command -v acpp)" -DCMAKE_CXX_FLAGS=--acpp-targets=generic \
+            -DKokkos_ENABLE_SYCL=ON -DKokkos_ENABLE_ONEDPL=OFF -DCMAKE_INSTALL_PREFIX="$work/install"
+          cmake --build "$work/build" --parallel 4
+          cmake --install "$work/build"
+          cmake -S example/macos-metal -B "$work/smoke" -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_COMPILER="$(command -v acpp)" -DCMAKE_CXX_FLAGS=--acpp-targets=generic \
+            -DCMAKE_PREFIX_PATH="$work/install"
+          cmake --build "$work/smoke"
+          "$work/smoke/kokkos-metal-smoke" metal

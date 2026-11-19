@@ -272,6 +272,10 @@ class ParallelScanSYCLBase {
     auto perform_work_group_scans = q.submit([&](sycl::handler& cgh) {
       sycl::local_accessor<unsigned int> num_teams_done(1, cgh);
 
+#if defined(KOKKOS_IMPL_SYCL_ADAPTIVECPP_METAL)
+      const size_t multiple = 1;
+      const size_t max = sycl_range_work_group_limit(q.get_device());
+#else
       auto dummy_scan_lambda =
           scan_lambda_factory({1, cgh}, num_teams_done, nullptr, nullptr);
 
@@ -289,6 +293,7 @@ class ParallelScanSYCLBase {
       auto max =
           kernel.get_info<sycl::info::kernel_device_specific::work_group_size>(
               q.get_device());
+#endif
 
       wgroup_size = static_cast<size_t>(max / multiple) * multiple;
       n_wgroups   = (size + wgroup_size - 1) / wgroup_size;

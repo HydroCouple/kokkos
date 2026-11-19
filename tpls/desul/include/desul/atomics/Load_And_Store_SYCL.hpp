@@ -30,6 +30,9 @@ void device_atomic_store(T* ptr, T val, MemoryOrder, MemoryScope scope) {
         reinterpret_cast<unsigned long long&>(*ptr));
     ref.store(reinterpret_cast<unsigned long long&>(val));
   } else {
+#if defined(DESUL_IMPL_ADAPTIVECPP_MACOS_METAL)
+    unsupported_sycl_lock_based_atomic();
+#else
     // This is a way to avoid deadlock in a subgroup
     int done = 0;
 #if defined(__INTEL_LLVM_COMPILER) && __INTEL_LLVM_COMPILER >= 20250000
@@ -54,6 +57,7 @@ void device_atomic_store(T* ptr, T val, MemoryOrder, MemoryScope scope) {
       }
       done_active = group_ballot(sg, done);
     }
+#endif
   }
 }
 
@@ -74,6 +78,9 @@ T device_atomic_load(const T* ptr, MemoryOrder, MemoryScope scope) {
     auto sycl_return = ref.load();
     return reinterpret_cast<T&>(sycl_return);
   } else {
+#if defined(DESUL_IMPL_ADAPTIVECPP_MACOS_METAL)
+    unsupported_sycl_lock_based_atomic();
+#else
     // This is a way to avoid deadlock in a subgroup
     T ret;
     int done = 0;
@@ -100,6 +107,7 @@ T device_atomic_load(const T* ptr, MemoryOrder, MemoryScope scope) {
       done_active = group_ballot(sg, done);
     }
     return ret;
+#endif
   }
 }
 

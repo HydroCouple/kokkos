@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.22)
+project(KokkosMacMetalSmoke LANGUAGES CXX)
+find_package(Kokkos CONFIG REQUIRED)
+add_executable(kokkos-metal-smoke smoke.cpp)
+target_link_libraries(kokkos-metal-smoke PRIVATE Kokkos::kokkos)
+target_compile_features(kokkos-metal-smoke PRIVATE cxx_std_20)

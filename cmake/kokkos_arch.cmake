@@ -953,7 +953,21 @@ if(KOKKOS_ENABLE_HIP)
   endif()
 endif()
 
-if(KOKKOS_ENABLE_SYCL)
+# AdaptiveCpp's generic compiler supplies its own SYCL flags. Restrict this
+# configuration to its Metal-capable, single-target Apple silicon driver.
+if(KOKKOS_ENABLE_SYCL AND CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  include(CheckCXXSourceCompiles)
+  check_cxx_source_compiles("
+    #include <sycl/sycl.hpp>
+    #if !defined(__aarch64__) || !defined(__ACPP_ENABLE_LLVM_SSCP_TARGET__) || !defined(SYCL_EXT_ACPP_BACKEND_METAL)
+    #error Requires arm64 AdaptiveCpp with Metal
+    #endif
+    int main() { return 0; }
+  " KOKKOS_COMPILER_HAS_APPLE_METAL)
+  set(KOKKOS_IMPL_SYCL_ADAPTIVECPP_METAL ${KOKKOS_COMPILER_HAS_APPLE_METAL})
+endif()
+
+if(KOKKOS_ENABLE_SYCL AND NOT KOKKOS_IMPL_SYCL_ADAPTIVECPP_METAL)
   compiler_specific_flags(DEFAULT -fsycl -fno-sycl-id-queries-fit-in-int -fsycl-dead-args-optimization)
   compiler_specific_options(DEFAULT -fsycl-unnamed-lambda)
   if(KOKKOS_CXX_COMPILER_ID STREQUAL IntelLLVM AND KOKKOS_CXX_COMPILER_VERSION VERSION_LESS 2024.1.0)

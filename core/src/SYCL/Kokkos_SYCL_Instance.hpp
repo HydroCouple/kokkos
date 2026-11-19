@@ -4,6 +4,7 @@
 #ifndef KOKKOS_SYCL_INSTANCE_HPP_
 #define KOKKOS_SYCL_INSTANCE_HPP_
 
+#include <algorithm>
 #include <atomic>
 #include <optional>
 #include <sycl/sycl.hpp>
@@ -14,6 +15,19 @@
 
 namespace Kokkos {
 namespace Impl {
+
+#ifdef KOKKOS_IMPL_SYCL_ADAPTIVECPP_METAL
+// SSCP has no executable kernel bundle to query before the first submission.
+inline size_t sycl_range_work_group_limit(const sycl::device &device) {
+  return std::min<size_t>(
+      256, device.get_info<sycl::info::device::max_work_group_size>());
+}
+
+inline size_t sycl_minimum_sub_group_size(const sycl::device &device) {
+  const auto widths = device.get_info<sycl::info::device::sub_group_sizes>();
+  return widths.empty() ? 1 : *std::min_element(widths.begin(), widths.end());
+}
+#endif
 
 class SYCLInternal {
  public:

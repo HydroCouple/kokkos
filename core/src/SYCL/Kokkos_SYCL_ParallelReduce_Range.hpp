@@ -236,6 +236,10 @@ class Kokkos::Impl::ParallelReduce<
       auto cgh_lambda = [&](sycl::handler& cgh) {
         sycl::local_accessor<unsigned int> num_teams_done(1, cgh);
 
+#if defined(KOKKOS_IMPL_SYCL_ADAPTIVECPP_METAL)
+        const size_t multiple = 1;
+        const size_t max = sycl_range_work_group_limit(q.get_device());
+#else
         auto dummy_reduction_lambda =
             reduction_lambda_factory({1, cgh}, num_teams_done, nullptr, 1);
 
@@ -254,6 +258,7 @@ class Kokkos::Impl::ParallelReduce<
             kernel
                 .get_info<sycl::info::kernel_device_specific::work_group_size>(
                     q.get_device());
+#endif
 
         auto max_local_memory =
             q.get_device().get_info<sycl::info::device::local_mem_size>();

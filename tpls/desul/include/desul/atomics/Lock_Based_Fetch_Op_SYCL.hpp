@@ -29,6 +29,9 @@ T device_atomic_fetch_oper(const Oper& op,
                            dont_deduce_this_parameter_t<const T> val,
                            MemoryOrder /*order*/,
                            MemoryScope scope) {
+#if defined(DESUL_IMPL_ADAPTIVECPP_MACOS_METAL)
+  unsupported_sycl_lock_based_atomic();
+#else
   // This is a way to avoid deadlock in a subgroup
   T return_val{};
   int done = 0;
@@ -56,6 +59,7 @@ T device_atomic_fetch_oper(const Oper& op,
     done_active = group_ballot(sg, done);
   }
   return return_val;
+#endif
 }
 
 }  // namespace Impl

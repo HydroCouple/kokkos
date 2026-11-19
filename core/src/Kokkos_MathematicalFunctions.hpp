@@ -520,12 +520,27 @@ inline long double abs(long double x) {
 KOKKOS_IMPL_MATH_UNARY_FUNCTION(fabs)
 KOKKOS_IMPL_MATH_BINARY_FUNCTION(fmod)
 KOKKOS_IMPL_MATH_BINARY_FUNCTION(remainder)
+#if defined(KOKKOS_IMPL_SYCL_ADAPTIVECPP_METAL)
+#undef KOKKOS_IMPL_MATH_FUNCTIONS_NAMESPACE
+#define KOKKOS_IMPL_MATH_FUNCTIONS_NAMESPACE std
 KOKKOS_IMPL_MATH_TERNARY_INT_PTR_FUNCTION(remquo)
+#undef KOKKOS_IMPL_MATH_FUNCTIONS_NAMESPACE
+#define KOKKOS_IMPL_MATH_FUNCTIONS_NAMESPACE sycl
+#else
+KOKKOS_IMPL_MATH_TERNARY_INT_PTR_FUNCTION(remquo)
+#endif
 KOKKOS_IMPL_MATH_TERNARY_FUNCTION(fma)
 KOKKOS_IMPL_MATH_BINARY_FUNCTION(fmax)
 KOKKOS_IMPL_MATH_BINARY_FUNCTION(fmin)
 KOKKOS_IMPL_MATH_BINARY_FUNCTION(fdim)
-#ifndef KOKKOS_ENABLE_SYCL
+#if defined(KOKKOS_IMPL_SYCL_ADAPTIVECPP_METAL)
+KOKKOS_INLINE_FUNCTION float nanf(char const *) {
+  return std::numeric_limits<float>::quiet_NaN();
+}
+KOKKOS_INLINE_FUNCTION double nan(char const *) {
+  return std::numeric_limits<double>::quiet_NaN();
+}
+#elif !defined(KOKKOS_ENABLE_SYCL)
 KOKKOS_INLINE_FUNCTION float nanf(char const* arg) { return ::nanf(arg); }
 KOKKOS_INLINE_FUNCTION double nan(char const* arg) { return ::nan(arg); }
 #else

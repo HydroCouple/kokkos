@@ -21,7 +21,13 @@ namespace Kokkos {
 // don't ask for the return value.
 template <typename... Args>
 KOKKOS_FORCEINLINE_FUNCTION void printf(const char* format, Args... args) {
-#ifdef KOKKOS_ENABLE_SYCL
+#if defined(KOKKOS_IMPL_SYCL_ADAPTIVECPP_METAL)
+  // The Metal runtime reports unsupported device printing through this builtin.
+  KOKKOS_IF_ON_DEVICE(__acpp_sscp_print(format);)
+  KOKKOS_IF_ON_HOST(if constexpr (sizeof...(Args) == 0)
+                        std::printf("%s", format);
+                    else std::printf(format, args...);)
+#elif defined(KOKKOS_ENABLE_SYCL)
   // Some compilers warn if "args" is empty and format is not a string literal
   if constexpr (sizeof...(Args) == 0)
     sycl::ext::oneapi::experimental::printf("%s", format);

@@ -152,6 +152,17 @@ static constexpr bool desul_impl_omp_on_host() { return false; }
 #define DESUL_IMPL_ACC_ROUTINE_DIRECTIVE
 #endif
 
+#if defined(DESUL_ATOMICS_ENABLE_SYCL) &&                                      \
+    defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__) && defined(__aarch64__) && \
+    defined(__ACPP_ENABLE_LLVM_SSCP_TARGET__)
+#define DESUL_IMPL_ADAPTIVECPP_MACOS_METAL
+#include <hipSYCL/sycl/libkernel/backend.hpp>
+#define DESUL_IF_ON_HOST(CODE)                                                 \
+  __acpp_if_target_host(DESUL_IMPL_STRIP_PARENS(CODE))
+#define DESUL_IF_ON_DEVICE(CODE)                                               \
+  __acpp_if_target_device(DESUL_IMPL_STRIP_PARENS(CODE))
+#endif
+
 #if !defined(DESUL_IF_ON_HOST) && !defined(DESUL_IF_ON_DEVICE)
 #if (defined(DESUL_ATOMICS_ENABLE_CUDA) && defined(__CUDA_ARCH__)) ||         \
     (defined(DESUL_ATOMICS_ENABLE_HIP) && defined(__HIP_DEVICE_COMPILE__)) || \
